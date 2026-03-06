@@ -1,5 +1,5 @@
 import { Plus, ChevronRight, Calendar as CalendarIcon, ListTree } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { useTasks, useUpdateTask, useCreateTask } from "@/hooks/use-tasks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { type FilterType } from "./app-sidebar";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 
 interface TaskListPaneProps {
   filter: FilterType;
@@ -27,6 +30,9 @@ export function TaskListPane({ filter, selectedTaskId, onSelectTask }: TaskListP
   })();
 
   const { data: tasks, isLoading } = useTasks(queryFilters);
+
+  // For calendar view, we want all tasks to show dots
+  const { data: allTasks } = useTasks({});
 
   const title = (() => {
     switch (filter.type) {
@@ -55,6 +61,40 @@ export function TaskListPane({ filter, selectedTaskId, onSelectTask }: TaskListP
       onSuccess: () => setNewTaskTitle("")
     });
   };
+
+  if (filter.type === 'calendar') {
+    const events = allTasks?.filter(t => t.dueDate).map(task => ({
+      id: String(task.id),
+      title: task.title,
+      start: task.dueDate!,
+      backgroundColor: task.list?.color || '#3b82f6',
+      borderColor: task.list?.color || '#3b82f6',
+      display: 'list-item'
+    })) || [];
+
+    return (
+      <div className="flex flex-col h-full bg-background border-r border-border/50 p-8 overflow-y-auto">
+        <div className="flex items-center gap-4 mb-8">
+          <h1 className="text-4xl font-display font-bold text-foreground">{title}</h1>
+        </div>
+        <div className="flex-1 bg-card rounded-xl border border-border/50 shadow-sm p-4">
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: ''
+            }}
+            events={events}
+            eventClick={(info) => onSelectTask(parseInt(info.event.id))}
+            height="auto"
+            aspectRatio={1.35}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-background border-r border-border/50">
