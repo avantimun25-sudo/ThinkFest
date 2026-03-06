@@ -7,6 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { type FilterType } from "./app-sidebar";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 
 interface TaskListPaneProps {
   filter: FilterType;
@@ -27,6 +30,9 @@ export function TaskListPane({ filter, selectedTaskId, onSelectTask }: TaskListP
   })();
 
   const { data: tasks, isLoading } = useTasks(queryFilters);
+
+  // Separate query for ALL tasks to show dots on calendar
+  const { data: allTasks } = useTasks({});
 
   const title = (() => {
     switch (filter.type) {
@@ -55,6 +61,63 @@ export function TaskListPane({ filter, selectedTaskId, onSelectTask }: TaskListP
       onSuccess: () => setNewTaskTitle("")
     });
   };
+
+  if (filter.type === 'calendar') {
+    const events = allTasks?.filter(t => t.dueDate).map(t => ({
+      id: String(t.id),
+      title: t.title,
+      start: t.dueDate!,
+      color: t.list?.color || '#3b82f6',
+      extendedProps: { completed: t.completed }
+    })) || [];
+
+    return (
+      <div className="flex flex-col h-full bg-background border-r border-border/50 p-8 overflow-y-auto">
+        <h1 className="text-4xl font-display font-bold text-foreground mb-8">{title}</h1>
+        <div className="calendar-container bg-card p-6 rounded-2xl border border-border shadow-sm">
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            events={events}
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: ''
+            }}
+            height="auto"
+            dayMaxEvents={true}
+            eventContent={(eventInfo) => (
+              <div className="flex items-center gap-1.5 px-1 py-0.5 overflow-hidden">
+                <div 
+                  className="w-2 h-2 rounded-full shrink-0" 
+                  style={{ backgroundColor: eventInfo.event.backgroundColor }}
+                />
+                <span className={`text-[10px] font-medium truncate ${eventInfo.event.extendedProps.completed ? 'line-through opacity-50' : ''}`}>
+                  {eventInfo.event.title}
+                </span>
+              </div>
+            )}
+            eventClick={(info) => {
+              onSelectTask(parseInt(info.event.id));
+            }}
+          />
+        </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .fc { --fc-border-color: hsl(var(--border) / 0.5); font-family: inherit; }
+          .fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 700; }
+          .fc .fc-button { background: hsl(var(--secondary)); border: 1px solid hsl(var(--border)); color: hsl(var(--secondary-foreground)); font-weight: 600; text-transform: capitalize; padding: 0.5rem 1rem; border-radius: 0.5rem; }
+          .fc .fc-button:hover { background: hsl(var(--accent)); }
+          .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
+          .fc .fc-daygrid-day-number { font-size: 0.875rem; font-weight: 600; padding: 8px; color: hsl(var(--muted-foreground)); }
+          .fc .fc-day-today { background: hsl(var(--primary) / 0.05) !important; }
+          .fc .fc-col-header-cell-cushion { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: hsl(var(--muted-foreground)); padding: 12px 0; }
+          .fc-theme-standard td, .fc-theme-standard th { border: 1px solid hsl(var(--border) / 0.3); }
+          .fc .fc-scrollgrid { border-radius: 0.75rem; overflow: hidden; border: 1px solid hsl(var(--border) / 0.5); }
+          .fc-daygrid-event { background: transparent !important; border: none !important; }
+        `}} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-background border-r border-border/50">
