@@ -89,7 +89,10 @@ export class DatabaseStorage implements IStorage {
     if (filters?.listId) {
       query = query.where(eq(tasks.listId, filters.listId));
     }
-    // If we wanted to filter by date exactly, we could add here. For now, ignoring date filter in SQL for simplicity.
+    
+    if (filters?.date) {
+      query = query.where(sql`DATE(${tasks.dueDate}) = DATE(${filters.date})`);
+    }
 
     const allTasks = await query;
     const allLists = await db.select().from(lists);

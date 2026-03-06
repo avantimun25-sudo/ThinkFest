@@ -19,14 +19,15 @@ interface TaskListPaneProps {
 
 export function TaskListPane({ filter, selectedTaskId, onSelectTask }: TaskListPaneProps) {
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [isAddingTask, setIsAddingTask] = useState(false);
   const updateTask = useUpdateTask();
   const createTask = useCreateTask();
 
   // Map FilterType to query params
   const queryFilters = (() => {
     if (filter.type === 'list' && filter.id) return { listId: filter.id };
-    if (filter.type === 'today') return { date: new Date().toISOString() };
-    return {}; // Other filters would need specific backend implementation or client-side filtering
+    if (filter.type === 'today') return { date: new Date().toISOString().split('T')[0] };
+    return {}; 
   })();
 
   const { data: tasks, isLoading } = useTasks(queryFilters);
@@ -58,7 +59,10 @@ export function TaskListPane({ filter, selectedTaskId, onSelectTask }: TaskListP
       title: newTaskTitle,
       listId: filter.type === 'list' ? filter.id : undefined,
     }, {
-      onSuccess: () => setNewTaskTitle("")
+      onSuccess: () => {
+        setNewTaskTitle("");
+        setIsAddingTask(false);
+      }
     });
   };
 
@@ -122,22 +126,39 @@ export function TaskListPane({ filter, selectedTaskId, onSelectTask }: TaskListP
   return (
     <div className="flex flex-col h-full bg-background border-r border-border/50">
       <div className="p-8 pb-4">
-        <div className="flex items-center gap-4 mb-8">
-          <h1 className="text-4xl font-display font-bold text-foreground">{title}</h1>
-          <div className="bg-secondary text-secondary-foreground px-4 py-1 rounded-lg text-2xl font-bold border border-border shadow-sm">
-            {tasks?.length || 0}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <h1 className="text-4xl font-display font-bold text-foreground">{title}</h1>
+            <div className="bg-secondary text-secondary-foreground px-4 py-1 rounded-lg text-2xl font-bold border border-border shadow-sm">
+              {tasks?.length || 0}
+            </div>
           </div>
+          <Button 
+            onClick={() => setIsAddingTask(!isAddingTask)}
+            variant={isAddingTask ? "ghost" : "default"}
+            className="rounded-xl px-6"
+          >
+            {isAddingTask ? "Cancel" : (
+              <>
+                <Plus className="mr-2 h-5 w-5" />
+                Add Task
+              </>
+            )}
+          </Button>
         </div>
 
-        <form onSubmit={handleCreateTask} className="relative group">
-          <Plus className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <Input 
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="Add new task" 
-            className="pl-12 py-6 rounded-xl border-2 border-border/50 bg-card text-lg shadow-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
-          />
-        </form>
+        {isAddingTask && (
+          <form onSubmit={handleCreateTask} className="relative group mb-8">
+            <Plus className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input 
+              autoFocus
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              placeholder="Add new task" 
+              className="pl-12 py-6 rounded-xl border-2 border-border/50 bg-card text-lg shadow-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+            />
+          </form>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-8 pt-4 space-y-3">

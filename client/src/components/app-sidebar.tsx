@@ -32,7 +32,6 @@ const SMART_FILTERS = [
   { id: 'upcoming', label: 'Upcoming', icon: ChevronsRight, type: 'upcoming' },
   { id: 'today', label: 'Today', icon: CalendarDays, type: 'today' },
   { id: 'calendar', label: 'Calendar', icon: CalendarIcon, type: 'calendar' },
-  { id: 'sticky', label: 'Sticky Wall', icon: StickyNote, type: 'sticky' },
 ] as const;
 
 export function AppSidebar({ selectedFilter, onSelectFilter, onCreateListClick }: AppSidebarProps) {
